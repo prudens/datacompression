@@ -32,5 +32,8 @@
     <ClInclude Include="BitStream.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ArithmeticCoding.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
