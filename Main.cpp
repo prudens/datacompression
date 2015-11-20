@@ -8,5 +8,6 @@ int main( int argc, char**argv )
   //  test_huffman( argc, argv );
     test_maxminheap( argc, argv );
     //test_bitstream( argc, argv );
+    std::cout << "test" << std::endl;
     return 0;
 }
