@@ -1,6 +1,7 @@
 #ifndef MATH_BASE_H
 #define MATH_BASE_H 
-
+#include "common.h"
+#define PI 3.141592654 //pi的值
 //Information Theory
 //i(A) = -(log(P(A))/log(b) // base b
 double SelfInformation( double pEvent,double base )
@@ -19,6 +20,26 @@ double MeanSelfInfo( double* pEventList, size_t  size ,double base )
     return result;
 }
 
+
+// 直角坐标与极坐标的转换
+typedef std::pair < double,double > rect_coord;
+typedef std::pair<double, double> pol_coord;
+
+pol_coord RectCoord2PolCoord(const rect_coord& rc)
+{
+    pol_coord pc;
+    pc.first = sqrt( rc.first*rc.first + rc.second*rc.second );
+    pc.second = atan(rc.second/rc.first);
+    return pc;
+}
+rect_coord PolCoord2RectCoord( const pol_coord& pc )
+{
+    rect_coord rc;
+    rc.first = pc.first*cos(pc.second);
+    rc.second = pc.first*sin( pc.second );
+    return rc;
+}
+
 void test_mathbase( int argc, char**argv )
 {
     std::cout << "Hello,Wolrd!!!" << std::endl;
@@ -31,5 +52,16 @@ void test_mathbase( int argc, char**argv )
 
     }
     std::cout << "mean self infromation " << MeanSelfInfo( pEventlist, sizeof( pEventlist ) / sizeof( pEventlist[0] ), 2 ) << std::endl;
-}
+
+    BEGIN_TEST( RectCoord2PolCoord );
+    rect_coord rc(1,1);
+    pol_coord pc = RectCoord2PolCoord( rc );
+    std::cout << "the input rect_coord is (" << rc.first << " ," << rc.second << "), the output pol coord is ( " << pc.first << " ," << pc.second << ")\n";
+    END_TEST( RectCoord2PolCoord );
+
+    BEGIN_TEST( PolCoord2RectCoord );
+    rc = PolCoord2RectCoord( pc );
+    std::cout << "the input polar coord is (" << pc.first << " ," << pc.second << "), the output rect coord is ( " << rc.first << " ," << rc.second << ")\n";
+    END_TEST( PolCoord2RectCoord );
+ }
 #endif
