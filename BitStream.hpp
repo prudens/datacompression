@@ -79,6 +79,7 @@ public:
 
     void WriteBit( BIT bit )
     {
+        ASSERT( bit == 0 || bit == 1 );
         writebuf_[write_buff_size_] = (writebuf_[write_buff_size_] << 1 )| bit;
         if ( ++write_bit_offset_ == 8 )
         {
