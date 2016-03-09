@@ -11,7 +11,7 @@
 class ArithmeticCoding
 {
 public:
-    typedef uint8_t value_type;
+    typedef uint32_t value_type;
     typedef uint32_t count_t;
     static const int WORD_BITS = sizeof(value_type)*8;//一字节
     static const int MSB_INDEX = WORD_BITS - 1;
@@ -65,11 +65,9 @@ public:
     std::vector<value_type>  AdaptiveEncode( std::vector<uint8_t> src )
     {
         std::vector<value_type> dst;
-
-        table.fill( 1 );
-        for ( int i = 1; i < TABLE_SIZE; i++ )
+        for ( int i = 0; i < TABLE_SIZE; i++ )
         {
-            table[i] += table[i - 1];// 累计分布函数
+            table[i] = i+1;// 累计分布函数
         }
 
         _total_src_byte = table[MAX_TABLE_IDX];
@@ -81,11 +79,12 @@ public:
         int bits = 0;
         for ( auto i : src )
         {
-            int lower1 = lower + ( ( (uint64_t)upper - lower + 1 ) * ( i == 0 ? 0 : table[i - 1] ) ) / _total_src_byte;
-            int upper1 = lower + ( ( (uint64_t)upper - lower + 1 ) * table[i] ) / _total_src_byte - 1;
-            lower = lower1;
-            upper = upper1;
-            //std::cout << "[" << (int)lower<<"," << (int)upper<<"]"<<std::endl;
+            uint64_t range = (uint64_t)upper - lower + 1;
+            uint64_t lower1 = lower + ( range * ( i == 0 ? 0 : table[i - 1] ) ) / _total_src_byte;
+            uint64_t upper1 = lower + ( range * table[i] ) / _total_src_byte - 1;
+            lower = static_cast<value_type>(lower1);
+            upper = static_cast<value_type>(upper1);
+           // std::cout << "[" << lower << "," << upper << "]" << std::endl;
             int LMSB = lower >> MSB_INDEX;
             int UMSB = upper >> MSB_INDEX;
             while ( LMSB == UMSB || ( lower >> SSB_INDEX & 1 )
@@ -124,7 +123,7 @@ public:
                 }
                 LMSB = lower >> MSB_INDEX;
                 UMSB = upper >> MSB_INDEX;
-                // std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
+              //  std::cout << "[" << (uint32_t)lower << "," << (uint32_t)upper << "]" << std::endl;
             }
 
             //更新table表
@@ -217,11 +216,12 @@ private:
         int bits=0;
         for ( auto i:src )
         {
-            int lower1 = lower + ( ( (uint64_t)upper - lower + 1 ) * ( i == 0 ? 0 : table[i - 1] )) / _total_src_byte;
-            int upper1 = lower + ( ( (uint64_t)upper - lower + 1 ) * table[i] ) / _total_src_byte - 1;
-            lower = lower1;
-            upper = upper1;
-            //std::cout << "[" << (int)lower<<"," << (int)upper<<"]"<<std::endl;
+            uint64_t range = (uint64_t)upper - lower + 1;
+            uint64_t lower1 = lower + ( range * ( i == 0 ? 0 : table[i - 1] ) ) / _total_src_byte;
+            uint64_t upper1 = lower + range * table[i] / _total_src_byte - 1;
+            lower = static_cast<value_type>(lower1);
+            upper = static_cast<value_type>( upper1);
+           // std::cout << "[" << (uint32_t)lower<<"," << (uint32_t)upper<<"]"<<std::endl;
             int LMSB = lower >> MSB_INDEX;
             int UMSB = upper >> MSB_INDEX;
             while ( LMSB == UMSB  || (  lower >> SSB_INDEX & 1)
@@ -260,7 +260,7 @@ private:
                 }
                 LMSB = lower >> MSB_INDEX;
                 UMSB = upper >> MSB_INDEX;
-               // std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
+              //  std::cout << "[" << (uint32_t)lower << "," << (uint32_t)upper << "]" << std::endl;
             }
         }
         int count = WORD_BITS;
@@ -333,8 +333,8 @@ private:
        value_type lower = 0, upper = -1;
        while ( true )
        {
-           int range = (uint64_t)upper - lower + 1;
-           count_t k = ( (t-lower+1)*_total_src_byte - 1 ) / range;
+           uint64_t range = (uint64_t)upper - lower + 1;
+           count_t k = static_cast<count_t>(( ((uint64_t)t-lower+1)*_total_src_byte - 1 ) / range);
 
            auto it = this->find( table.begin(), table.end(), k );
 
@@ -349,12 +349,11 @@ private:
            }
            dst.push_back( index );
            
-           int tt = ( range * table[index] ) / _total_src_byte - 1;
-           value_type lower1 = lower + range * (index == 0?0:table[index-1]) / _total_src_byte;
-           value_type upper1 = lower + tt;
+           value_type lower1 = static_cast<value_type>(lower + range * ( index == 0 ? 0 : table[index - 1] ) / _total_src_byte);
+           value_type upper1 = static_cast<value_type>(lower + ( range * table[index] ) / _total_src_byte - 1);
            lower = lower1;
            upper = upper1;
-          // std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
+          // std::cout << "[" << (uint32_t)lower << "," << (uint32_t)upper << "]" << std::endl;
            int LMSB = lower >> MSB_INDEX;
            int UMSB = upper >> MSB_INDEX;
            if ( dst.size() == dst_size )
@@ -392,7 +391,7 @@ private:
                }
                LMSB = lower >> MSB_INDEX;
                UMSB = upper >> MSB_INDEX;
-              // std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
+             //  std::cout << "[" << (uint32_t)lower << "," << (uint32_t)upper << "]" << std::endl;
            }
        }
         return dst;
@@ -401,10 +400,9 @@ private:
     {
         size_t encode_bit_len = _encode_bit_len;
         std::vector<uint8_t> dst;
-        table.fill( 1 );
-        for ( int i = 1; i < TABLE_SIZE; i++ )
+        for ( int i = 0; i < TABLE_SIZE; i++ )
         {
-            table[i] += table[i - 1];// 累计分布函数
+            table[i] = i+1;// 累计分布函数
         }
 
         _total_src_byte = table[MAX_TABLE_IDX];
@@ -423,8 +421,8 @@ private:
         value_type lower = 0, upper = -1;
         while ( true )
         {
-            int range = (uint64_t)upper - lower + 1;
-            count_t k = ( ( t - lower + 1 )*_total_src_byte - 1 ) / range;
+            uint64_t range = (uint64_t)upper - lower + 1;
+            count_t k = static_cast<count_t>(( ( (uint64_t)t - lower + 1 )*_total_src_byte - 1 ) / range);
 
             auto it = this->find( table.begin(), table.end(), k );
 
@@ -439,12 +437,11 @@ private:
             }
             dst.push_back( index );
 
-            int tt = ( range * table[index] ) / _total_src_byte - 1;
-            value_type lower1 = lower + range * ( index == 0 ? 0 : table[index - 1] ) / _total_src_byte;
-            value_type upper1 = lower + tt;
-            lower = lower1;
-            upper = upper1;
-            // std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
+            uint64_t lower1 = lower + range * ( index == 0 ? 0 : table[index - 1] ) / _total_src_byte;
+            uint64_t upper1 = lower + range * table[index] / _total_src_byte - 1;
+            lower = static_cast<value_type>(lower1);
+            upper = static_cast<value_type>(upper1);
+           //  std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
             int LMSB = lower >> MSB_INDEX;
             int UMSB = upper >> MSB_INDEX;
             if ( dst.size() == dst_size )
@@ -456,7 +453,7 @@ private:
             {
                 upper = upper << 1 | 1;
                 lower <<= 1;
-                t = t << 1;
+                t <<= 1;
                 if ( encode_bit_len > 0 )
                 {
                     if ( bits_remain > 0 )
@@ -482,7 +479,7 @@ private:
                 }
                 LMSB = lower >> MSB_INDEX;
                 UMSB = upper >> MSB_INDEX;
-                // std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
+               //  std::cout << "[" << (int)lower << "," << (int)upper << "]" << std::endl;
             }
 
             //更新table表
@@ -517,14 +514,14 @@ public:
 void test_arithmeticcoding( int argc, char**argv )
 {
     // = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 7, 8, 9 };
-    for ( int i = 0; i < 100;i++ )
+    for ( int i = 0; i < 10;i++ )
     {
         std::vector<uint8_t> vec;
         srand( i );
-        int k = rand()%100;
+        int k = rand()%1000;
         for ( int j = 0; j < k; j++ )
         {
-            vec.push_back( rand( )%100+1 );
+            vec.push_back( rand( )%10000 );
         }
         if (vec.size() == 0)
         {
@@ -556,29 +553,29 @@ void test_arithmeticcoding( int argc, char**argv )
         }
 
 
-//         ArithmeticCoding coding2;
-//          dst = coding2.Encode( ArithmeticCoding::eAdaptiveMode, vec );
-//          src = coding2.Decode( ArithmeticCoding::eAdaptiveMode, dst, vec.size() );
+        ArithmeticCoding coding2;
+         dst = coding2.Encode( ArithmeticCoding::eAdaptiveMode, vec );
+         src = coding2.Decode( ArithmeticCoding::eAdaptiveMode, dst, vec.size() );
         //     auto dst = coding.Encode( ArithmeticCoding::eStatisticMode, vec );
         //     auto src = coding.Decode( ArithmeticCoding::eStatisticMode, dst, vec.size() );
-//         if ( src != vec )
-//         {
-// 
-//             std::cout << "自适应的编码前： \n";
-//             for ( auto i : vec )
-//             {
-//                 std::cout << (int)i << "\t";
-//             }
-//             std::cout << std::endl << "编码后：\n";
-//             for ( auto i : src )
-//             {
-//                 std::cout << (int)i << "\t";
-//             }
-//             std::cout << std::endl;
-//             //std::cout << "编解码器有错误！！！" << std::endl;
-//             std::cout << "bit_len:" << coding1._encode_bit_len << std::endl;
-// 
-//         }
+        if ( src != vec )
+        {
+
+            std::cout << "自适应的编码前： \n";
+            for ( auto i : vec )
+            {
+                std::cout << (int)i << "\t";
+            }
+            std::cout << std::endl << "编码后：\n";
+            for ( auto i : src )
+            {
+                std::cout << (int)i << "\t";
+            }
+            std::cout << std::endl;
+            //std::cout << "编解码器有错误！！！" << std::endl;
+            std::cout << "bit_len:" << coding1._encode_bit_len << std::endl;
+
+        }
     }
     ArithmeticCoding coding;
     std::vector<uint8_t> vec = { 2,2,1,2,3,1,1,2 };
@@ -605,6 +602,7 @@ void test_arithmeticcoding( int argc, char**argv )
             std::cout << "the internal value is " << *(v.crbegin())<<std::endl;
         }
     }
+    //自适应模式算术编码有bug
     system( "pause" );
 }
 #endif//ARITHMETIC_CODING_HPP
